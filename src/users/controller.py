@@ -5,7 +5,7 @@ from fastapi import BackgroundTasks, HTTPException,status,Request
 from pwdlib import PasswordHash
 import jwt
 from src.utils.settings import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 from jwt.exceptions import InvalidTokenError
 from src.utils.mail import send_email
 password_hash=PasswordHash.recommended()
@@ -51,7 +51,7 @@ def user_login(body:LoginSchema , db: Session):
     if not Verify_paassword(body.password,user.hash_password):
          raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You entered wrong password")
 
-    exp_time=datetime.now()+timedelta(minutes=settings.EXP_TIME)
+    exp_time=datetime.now(timezone.utc)+timedelta(minutes=settings.EXP_TIME)
     token=jwt.encode({"_id": user.id,"exp":exp_time},settings.SECRET_KEY,algorithm=settings.ALGORITHM)
     print(exp_time)
     
