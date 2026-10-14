@@ -1,0 +1,3 @@
+# Only needed for running the tests (not for running the app)
+pytest
+httpx

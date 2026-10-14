@@ -1,13 +1,15 @@
 from datetime import date, datetime
-from typing import Literal
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated, Literal
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 Priority = Literal["low", "medium", "high"]
+Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+Description = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
 
 
 class TaskSchema(BaseModel):
-    title: str
-    description: str
+    title: Title
+    description: Description
     completed: bool = False
     priority: Priority = "medium"
     due_date: date | None = None
@@ -34,7 +36,7 @@ class DayCount(BaseModel):
 class StatsResponse(BaseModel):
     completed_today: int
     completed_last_7_days: int
-    last_7_days: list[DayCount]  
-    current_streak: int           
+    last_7_days: list[DayCount]   # oldest first, ends with today
+    current_streak: int           # consecutive days with at least one completed task
     best_streak: int
-    total_completed: int          
+    total_completed: int          # completed tasks that have a completion time
