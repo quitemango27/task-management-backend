@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     EXP_TIME:int
-
+    GROQ_API_KEY: str | None = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
 settings=Settings()
