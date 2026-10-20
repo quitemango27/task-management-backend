@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from src.ai import planner
-from src.ai.dtos import DailyPlanResponse
+from src.ai.dtos import AIBreakdown, BreakdownRequest, BreakdownResponse, DailyPlanResponse
 from src.ai.limiter import check_rate_limit
 from src.tasks.model import TaskModel
 from src.tasks.stats import _to_local_date
@@ -24,6 +24,13 @@ def get_plan_model():
     if not settings.GROQ_API_KEY:
         raise HTTPException(status_code=503, detail="The AI assistant isn't set up yet.")
     return planner.build_model()
+
+
+def get_breakdown_model():
+    """Same idea as get_plan_model, but asks Groq for the breakdown shape. Tests replace this too."""
+    if not settings.GROQ_API_KEY:
+        raise HTTPException(status_code=503, detail="The AI assistant isn't set up yet.")
+    return planner.build_model(AIBreakdown)
 
 
 @ai_router.post("/daily-plan", response_model=DailyPlanResponse, status_code=status.HTTP_200_OK)
@@ -46,4 +53,18 @@ def daily_plan(
     except Exception:
         # Groq down, quota hit, bad reply... never show raw errors to the user
         logger.exception("AI daily plan failed")
+        raise HTTPException(status_code=503, detail="Mia is taking a short break. Please try again in a minute.")
+
+
+@ai_router.post("/breakdown", response_model=BreakdownResponse, status_code=status.HTTP_200_OK)
+def breakdown(
+    body: BreakdownRequest,
+    user: UserModel = Depends(is_authenticated),
+    model=Depends(get_breakdown_model),
+):
+    check_rate_limit(user.id, "breakdown")
+    try:
+        return planner.generate_breakdown(body.title, body.details, model)
+    except Exception:
+        logger.exception("AI breakdown failed")
         raise HTTPException(status_code=503, detail="Mia is taking a short break. Please try again in a minute.")
